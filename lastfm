@@ -1,21 +1,64 @@
 #!/bin/sh
+# Author: Marcus Carlsson <carlsson.marcus@gmail.com>
 
-query=$*
+doencode=true
+
+if [ "$1" = '-' ]; then
+    out=true; shift
+fi
+
+encode() {
+    string=$1
+    echo $(python2 -c "from urllib import quote; print quote('''$string''')")
+}
 
 case "$1" in
     tag)
-        type='globaltags'
-        shift
+        type='tag'; shift
+        query=''
+        for tag in $@; do
+            tag=$(encode $tag)
+            query="$query$tag*"
+        done
+        query=`echo $query|sed 's/.$//'` # Strip last char
+
+        unset doencode
+        ;;
+    globaltags)
+        type='globaltags'; shift
         query=$*
+        ;;
+    user)
+        type='user'; shift
+        query=$1; shift
+
+        case "$1" in
+            loved) extra='/loved';;
+            personal) extra='/personal';;
+            playlist) extra='/playlist';;
+            *) extra='/recommended'
+        esac
         ;;
     artist|*)
         type='artist'
         extra='/similarartists'
-        if [ $1 == 'artist' ]; then
+        if [ $1 = 'artist' ]; then
             shift
         fi
         query=$*
 esac
         
-echo "lastfm://$type/"$(python2 -c "from urllib import quote; print quote('''$query''')")$extra | xclip
+lastfm="lastfm://$type/"
+if ! [ $doencode ]; then
+    lastfm=$lastfm$query$extra
+else
+    query=$(encode $query)
+    lastfm=$lastfm$query$extra
+fi
+
+if [ $out ]; then
+    echo $lastfm
+else
+    echo $lastfm | xclip
+fi
 exit
