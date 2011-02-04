@@ -1,0 +1,21 @@
+#!/bin/sh
+
+query=$*
+
+case "$1" in
+    tag)
+        type='globaltags'
+        shift
+        query=$*
+        ;;
+    artist|*)
+        type='artist'
+        extra='/similarartists'
+        if [ $1 == 'artist' ]; then
+            shift
+        fi
+        query=$*
+esac
+        
+echo "lastfm://$type/"$(python2 -c "from urllib import quote; print quote('''$query''')")$extra | xclip
+exit
