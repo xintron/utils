@@ -19,7 +19,7 @@ Please read the help if you have any questions `droidpaper --help`
 Scrot
 -----
 
-![Example output](droid_1300402559.thumb.png)
+![Example output](https://github.com/xintron/utils/raw/master/droidpaper/droid_1300402559.thumb.png)
 
 License
 -------
