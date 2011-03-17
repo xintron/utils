@@ -28,21 +28,40 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Check so that imagemagick is present
+which convert &> /dev/null || echo 'Eh, how did you think this would work? You don''t have ImageMagick installed and believe that we can magically modify and merging images just like that? Stupid! Install ImageMagick and "please come again"'
+
+help_text='usage: '$0' [-h] [-b] scrot1 scrot2 background
+
+Create an awesome image to show your friends with the latest scrot of your
+android device (or any images you want to apply on the background of your
+choice).
+
+optional arguments:
+ -h, --help     show this help message and exit
+ -b, --blur     blur the background-image'
+
+show_help () {
+    echo "$help_text"
+    exit 1;
+}
+
 while [ ! -z $1 ]; do
     case "$1" in
-        '-blur')
+        '-b'|'--blur')
                 blur=true
                 shift
             ;;
+        '-h'|'--help')
+                show_help
+            ;;
         *)
-            if [ ! $# -eq 3 ]; then
-                echo 'Three (3) arguments are required fucker!'
-                exit 1;
-            fi
             break
             ;;
     esac
 done
+
+[[ $# -eq 3 ]] || show_help
 
 background=$3
 out=()
