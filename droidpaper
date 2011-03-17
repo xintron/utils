@@ -28,64 +28,67 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-doencode=true
+while [ ! -z $1 ]; do
+    case "$1" in
+        '-blur')
+                blur=true
+                shift
+            ;;
+        *)
+            if [ ! $# -eq 3 ]; then
+                echo 'Three (3) arguments are required fucker!'
+                exit 1;
+            fi
+            break
+            ;;
+    esac
+done
 
-if [ "$1" = '-' ]; then
-    out=true; shift
-fi
+background=$3
+out=()
 
-encode() {
-    string=$*
-    echo $(python2 -c "from urllib import quote; print quote('''$string''')")
+add_shadow () {
+    shadow=$(echo $1 | sed -e 's/\.[a-z0-9]\+$//i')-shadow.$(echo $1 | sed -e 's/.*\.\([a-z0-9]\+\)$/\1/i')
+    out[${#out[*]}]=$shadow
+    convert $1 \( +clone -background black -shadow 90x5+0+0 \) +swap -background none -layers merge +repage $shadow
 }
 
-case "$1" in
-    tag)
-        type='tag'; shift
-        query=''
-        for tag in "$@"; do
-            tag=$(encode $tag)
-            query="$query$tag*"
-        done
-        query=`echo $query|sed 's/.$//'` # Strip last char
+# Merge all images to one awesome image!
+bazinga () {
+    convert $background \( $(echo ${out[@]}) +append \) -gravity center -composite droid_$(date +'%s.png')
+}
 
-        unset doencode
-        ;;
-    globaltags)
-        type='globaltags'; shift
-        query=$*
-        ;;
-    user)
-        type='user'; shift
-        query=$1; shift
+echo 'Adding shadows'
+i=0
+for file in $*; do
+    let 'i+=1'
+    if [ $i -eq 3 ]; then
+        break
+    fi
+    add_shadow $file
+done
 
-        case "$1" in
-            loved) extra='/loved';;
-            personal) extra='/personal';;
-            playlist) extra='/playlist';;
-            *) extra='/recommended'
-        esac
-        ;;
-    artist|*)
-        type='artist'
-        extra='/similarartists'
-        if [ $1 = 'artist' ]; then
-            shift
-        fi
-        query=$*
-esac
-        
-lastfm="lastfm://$type/"
-if ! [ $doencode ]; then
-    lastfm=$lastfm$query$extra
-else
-    query=$(encode $query)
-    lastfm=$lastfm$query$extra
+if [ -n "$blur" ]; then
+    tmp_background=$(echo $background | sed -e 's/\.[a-z0-9]\+$//i')-tmp.$(echo $background | sed -e 's/.*\.\([a-z0-9]\+\)$/\1/i')
+
+    # Add blur
+    echo 'Bluring background'
+    convert $background -gaussian-blur 12x4 $tmp_background
+
+    background=$tmp_background
 fi
 
-if [ $out ]; then
-    echo $lastfm
-else
-    echo $lastfm | xclip
+echo 'Generating image, yay!'
+bazinga
+    
+# Cleanup time!
+if [ -n "$tmp_background" ]; then
+    rm $tmp_background
 fi
+for file in ${out[@]}; do
+    rm $file
+done
+
+echo -e '::\033[38;5;012m Now we''re done. Please grab yourself a cup of coffee, you deserve it!\033[0m'
+
 exit
