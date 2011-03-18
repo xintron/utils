@@ -63,6 +63,7 @@ case "$1" in
             loved) extra='/loved';;
             personal) extra='/personal';;
             playlist) extra='/playlist';;
+			neighbours) extra='/neighbours' ;;
             *) extra='/recommended'
         esac
         ;;
