@@ -29,9 +29,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Check so that imagemagick is present
-which convert &> /dev/null || echo 'Eh, how did you think this would work? You don''t have ImageMagick installed and believe that we can magically modify and merging images just like that? Stupid! Install ImageMagick and "please come again"'
+which convert &> /dev/null || echo 'Eh, how did you think this would work? You don''t have ImageMagick installed and believe that we can magically modify and merge images just like that? Stupid! Install ImageMagick and "please come again"'
 
-help_text='usage: '$0' [-h] [-b] scrot1 scrot2 background
+help_text='usage: '$0' [-h] [-b] background scrot1 scrot2 [scrot3...]
 
 Create an awesome image to show your friends with the latest scrot of your
 android device (or any images you want to apply on the background of your
@@ -61,9 +61,11 @@ while [ ! -z $1 ]; do
     esac
 done
 
-[[ $# -eq 3 ]] || show_help
+[[ $# -ge 2 ]] || show_help
 
-background=$3
+background=$1
+shift
+
 out=()
 
 add_shadow () {
@@ -81,9 +83,6 @@ echo 'Adding shadows'
 i=0
 for file in $*; do
     let 'i+=1'
-    if [ $i -eq 3 ]; then
-        break
-    fi
     add_shadow $file
 done
 
@@ -91,7 +90,7 @@ if [ -n "$blur" ]; then
     tmp_background=$(echo $background | sed -e 's/\.[a-z0-9]\+$//i')-tmp.$(echo $background | sed -e 's/.*\.\([a-z0-9]\+\)$/\1/i')
 
     # Add blur
-    echo 'Bluring background'
+    echo 'Blurring background'
     convert $background -gaussian-blur 12x4 $tmp_background
 
     background=$tmp_background
@@ -108,6 +107,6 @@ for file in ${out[@]}; do
     rm $file
 done
 
-echo -e '::\033[38;5;012m Now we''re done. Please grab yourself a cup of coffee, you deserve it!\033[0m'
+echo -e "::\033[38;5;012m Now we're done. Please grab yourself a cup of coffee, you deserve it!\033[0m"
 
 exit
