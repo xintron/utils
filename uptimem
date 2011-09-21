@@ -1,14 +1,15 @@
 #!/bin/bash
 
-total=$(($(head -n1 /proc/meminfo | awk '{print $2}')/1024))
-free=$(($(head -n2 /proc/meminfo | tail -n1 | awk '{print $2}')/1024))
-
 function color {
     echo -en "\033[38;5;${1}m$2\033[0m"
 }
 
+total=$(($(head -n1 /proc/meminfo | awk '{print $2}')/1024))
+free=$(($(head -n2 /proc/meminfo | tail -n1 | awk '{print $2}')/1024))
+limit=$(($total*25/100))
+
 color 255 "RAM: "
-if [ $free -lt 2000 ]; then
+if [ $free -lt $limit ]; then
     color 196 "${free}MB"
 else
     color 184 "${free}MB"
