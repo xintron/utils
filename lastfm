@@ -30,6 +30,23 @@
 
 doencode=true
 
+function show_help() {
+    cat << EOF
+Usage: $(basename $0) [-] [user query [ [loved|personal|playlist|neighbours|recommended]] | [tag|globaltags|artist query] ] [query]
+
+    default: artist
+        artist:         creates a stream for similarartists matching the query.
+        tag:            creates a stream from given tags (max: 3 tags)
+        globaltags:     creates a stream for a given tag (max: 1 tag)
+        user:           creates a stream for a given user. Takes a second argument for [loved|personal|playlist|neighbours|recommended] with recommended as default.
+    -h --help   Show this help.
+    -           Print the output instead of copy to clipboard.
+EOF
+    exit 1;
+}
+
+[ "$1" = '-h' -o "$1" = '--help' -o $# -lt 1 ] && show_help
+
 if [ "$1" = '-' ]; then
     out=true; shift
 fi
@@ -70,7 +87,7 @@ case "$1" in
     artist|*)
         type='artist'
         extra='/similarartists'
-        if [ $1 = 'artist' ]; then
+        if [ "$1" = 'artist' ]; then
             shift
         fi
         query=$*
