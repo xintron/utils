@@ -97,7 +97,7 @@ def parse_args():
 def run():
 
     args = parse_args()
-    s = ['scrot', '-q 100', '-e', 'echo $f']
+    s = ['scrot', '-e', 'echo $f']
     if args.select:
         s.append('-s')
     s.append(args.filename)
