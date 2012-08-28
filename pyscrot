@@ -64,8 +64,14 @@ def parse_args():
     parser.add_argument('--filename', '-f', help='Filename.\
             See `man scrot` for more info. (default: %(default)s)',
             metavar='FILENAME')
-    parser.add_argument('--select', '-s', action='store_true',
-            help='Select area to scrot.')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--select', '-s', action='store_const',
+            help='Select area to scrot.', dest='scrot', const='-s')
+    group.add_argument('--multidisp', '-m', action='store_const',
+            help='Select multidisplays to scrot.', dest='scrot', const='-m')
+
+
     parser.add_argument('--username', '-u', help='Remote username.')
     parser.add_argument('--host', '-H', help='Remote hostname or IP.')
     parser.add_argument('--port', '-p', type=int, help='Remote port.')
@@ -97,9 +103,9 @@ def parse_args():
 def run():
 
     args = parse_args()
-    s = ['scrot', '-q 100', '-e', 'echo $f']
-    if args.select:
-        s.append('-s')
+    s = ['scrot', '-e', 'echo $f']
+    if args.scrot:
+        s.append(args.scrot)
     s.append(args.filename)
     proc = subprocess.Popen(s, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     filename, stderr = proc.communicate()
@@ -132,7 +138,7 @@ def run():
     scp.append(filename)
     scp.append('{}:{}'.format(''.join(host), base_dir))
 
-    assert subprocess.call(scp) == 0
+    subprocess.call(scp)
 
     os.unlink(filename)
 
