@@ -1,0 +1,6 @@
+#!/bin/sh
+# Plugin for using mplayer to stream videos
+COOKIE=/tmp/youtube-dl-cookie.txt
+mplayer -cache 12800 -cache-min 2 -cache-seek-min 10 \
+    -user-agent 'Mozilla/5.0 (X11; Linux x86_64; rv:5.0.1) Gecko/20100101 Firefox/5.0.1' \
+    $(youtube-dl -g --cookies ${COOKIE} $*)
