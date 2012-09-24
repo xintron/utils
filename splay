@@ -1,6 +1,8 @@
 #!/bin/sh
 # Plugin for using mplayer to stream videos
-COOKIE=/tmp/youtube-dl-cookie.txt
+find /tmp -maxdepth 1 -iname 'youtube-dl*' -regex ".*[^$(date +'%u')]\.txt" -delete
+COOKIE=/tmp/youtube-dl-cookie$(date +'%u').txt
 mplayer -cache 12800 -cache-min 2 -cache-seek-min 10 \
-    -user-agent 'Mozilla/5.0 (X11; Linux x86_64; rv:5.0.1) Gecko/20100101 Firefox/5.0.1' \
+    -user-agent 'Mozilla/5.0 (X11; Linux x86_64; rv:18.0) Gecko/18.0 Firefox/18.0' \
+    -cookies -cookies-file ${COOKIE} \
     $(youtube-dl -g --cookies ${COOKIE} $*)
