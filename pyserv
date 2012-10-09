@@ -47,6 +47,7 @@ class ListingHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     server_version = "PyServe/" + __version__
     protocol_version = "HTTP/1.0"
     length = 48
+    hide = False
 
     def list_directory(self, path):
         """Helper to list a directory"""
@@ -63,6 +64,8 @@ class ListingHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         r.append("<body>\n<h1>Index of {}</h1>\n".format(displaypath))
         r.append("<hr>\n<pre>\n")
         for fd in list:
+            if self.hide and fd.startswith('.'):
+                continue
             fullname = os.path.join(path, fd)
             displayname = linkname = fd
             size = '-'
@@ -105,6 +108,7 @@ def main():
     parser.add_argument('-b', '--bind', default='',
             help='Address to bind to. Empty means all addresses')
     parser.add_argument('-p', '--port', type=int)
+    parser.add_argument('--hide', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.port:
@@ -113,7 +117,9 @@ def main():
         port = 8000
 
     server_address = (args.bind, port)
-    httpd = http.server.HTTPServer(server_address, ListingHTTPRequestHandler)
+    lh = ListingHTTPRequestHandler
+    lh.hide = args.hide
+    httpd = http.server.HTTPServer(server_address, lh)
 
     sa = httpd.socket.getsockname()
     logger.info('Serving HTTP on: {}, port: {}'.format(sa[0], sa[1]))
