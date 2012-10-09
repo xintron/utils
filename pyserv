@@ -51,6 +51,9 @@ class ListingHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def list_directory(self, path):
         """Helper to list a directory"""
+        if self.hide and os.path.basename(os.path.abspath(path)).startswith('.'):
+            self.send_error(404, "No permission to list directory")
+            return None
         try:
             list = os.listdir(path)
         except os.error:
