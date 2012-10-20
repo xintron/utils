@@ -1,0 +1,55 @@
+#!/bin/sh
+
+help_text="usage: $(basename $0) [-p FILE|DIR] [-e EVENT] command
+
+optional arguments:
+  -p    Watch file or directory. Defaults to '.'
+  -e    Events to listen for. Multiple events may be added.
+        None will listen to all events. See man inotifywait for events."
+show_help() {
+    echo -e "$help_text"
+    exit
+}
+
+dir="."
+events=()
+while getopts ":p:e:h" opt; do
+    case $opt in
+        p)
+            dir=$OPTARG
+            ;;
+        e)
+            events=("${events[@]}" $OPTARG)
+            ;;
+        h)
+            show_help
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ $# -gt 0 ]; then 
+    cmd="$*"
+else
+    show_help
+fi
+
+format=$(echo -e "\e[1m\e[32m%f\e[0m: %e")
+for e in "${events[@]}"; do
+    if [ ${#event} -eq 0 ]; then
+        event="-e $e"
+    else
+        event="$event -e $e"
+    fi
+done
+while inotifywait -q $event --format "$format" "$dir"; do
+    $cmd
+done
