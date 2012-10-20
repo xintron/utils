@@ -3,6 +3,7 @@
 help_text="usage: $(basename $0) [-p FILE|DIR] [-e EVENT] command
 
 optional arguments:
+  -r    Watch directories recursively.
   -p    Watch file or directory. Defaults to '.'
   -e    Events to listen for. Multiple events may be added.
         None will listen to all events. See man inotifywait for events."
@@ -13,13 +14,16 @@ show_help() {
 
 dir="."
 events=()
-while getopts ":p:e:h" opt; do
+while getopts ":p:e:hr" opt; do
     case $opt in
         p)
             dir=$OPTARG
             ;;
         e)
             events=("${events[@]}" $OPTARG)
+            ;;
+        r)
+            recursive="-r"
             ;;
         h)
             show_help
@@ -42,7 +46,7 @@ else
     show_help
 fi
 
-format=$(echo -e "\e[1m\e[32m%f\e[0m: %e")
+format=$(echo -e "\e[34m:: \e[1m\e[32m%w%f\e[0m: %e")
 for e in "${events[@]}"; do
     if [ ${#event} -eq 0 ]; then
         event="-e $e"
@@ -50,6 +54,6 @@ for e in "${events[@]}"; do
         event="$event -e $e"
     fi
 done
-while inotifywait -q $event --format "$format" "$dir"; do
+while inotifywait -q $recursive $event --format "$format" "$dir"; do
     $cmd
 done
