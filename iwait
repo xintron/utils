@@ -1,6 +1,6 @@
 #!/bin/sh
 
-help_text="usage: $(basename $0) [-p FILE|DIR] [-e EVENT] command
+help_text="usage: $(basename $0) [-r] [-p FILE|DIR] [-e EVENT] command
 
 optional arguments:
   -r    Watch directories recursively.
