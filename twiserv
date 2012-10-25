@@ -39,7 +39,15 @@ from twisted.internet import reactor
 
 content_types = {
         '.mkv': 'video/x-matroska',
-        '.nfo': 'text/plain'
+        '.nfo': 'text/plain',
+        '.cr2': 'image/x-raw'
+        }
+content_icons = {
+        'directory': 'icon-folder-close',
+        'video': 'icon-film',
+        'audio': 'icon-music',
+        'image': 'icon-picture',
+        'default': 'icon-file'
         }
 
 def human_size(num):
@@ -87,6 +95,16 @@ class DirLister(DirectoryLister):
     def _buildTableContent(self, elements):
         tableContent = []
         for element in elements:
+            t = element['type'][1:len(element['type'])-1]
+            icon = False
+            for i in content_icons.iterkeys():
+                if t.startswith(i):
+                    element['text'] = '<i class="%s"></i> %s' \
+                        % (content_icons[i], element['text'])
+                    icon = True
+            if not icon:
+                element['text'] = '<i class="%s"></i> %s' \
+                    % (content_icons['default'], element['text'])
             tableContent.append(self.linePattern % element)
         return tableContent
 
@@ -101,7 +119,7 @@ class DirLister(DirectoryLister):
             if os.path.isdir(os.path.join(self.path, path)):
                 url = url + '/'
                 dirs.append({'text': escapedPath + "/", 'href': url,
-                             'size': '', 'type': '[Directory]',
+                             'size': '', 'type': '[directory]',
                              'encoding': ''})
             else:
                 mimetype, encoding = getTypeAndEncoding(path, self.contentTypes,
