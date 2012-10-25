@@ -29,6 +29,7 @@ import os
 import argparse
 import urllib
 import cgi
+import logging
 
 from twisted.python import log
 from twisted.web.server import Site
@@ -60,7 +61,7 @@ class DirLister(DirectoryLister):
         <table class="table table-hover table-striped table-condensed">
             <thead>
                 <th>Filename</th>
-                <th>Size</th>
+                <th style="size: 5%;">Size</th>
                 <th>Content type</th>
             </thead>
             <tbody>
@@ -139,14 +140,19 @@ def main():
     fh.hide = args.hide
     resource = fh
     factory = Site(resource)
+    logger.info('Serving HTTP on: {}:{}'.format(args.bind, port))
     reactor.listenTCP(port, factory, interface=args.bind)
-    log.startLogging(sys.stdout)
-    log.msg('Serving HTTP on: {}:{}'.format(args.bind, port))
     try:
         reactor.run()
     except KeyboardInterrupt:
         reactor.stop()
         sys.exit(0)
 
+logger = None
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG,
+            format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
+    logger = logging.getLogger()
+    observer = log.PythonLoggingObserver()
+    observer.start()
     main()
