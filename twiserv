@@ -61,7 +61,7 @@ class DirLister(DirectoryLister):
         <table class="table table-hover table-striped table-condensed">
             <thead>
                 <th>Filename</th>
-                <th style="size: 5%;">Size</th>
+                <th style="width: 5%%;">Size</th>
                 <th>Content type</th>
             </thead>
             <tbody>
@@ -127,7 +127,8 @@ def main():
     parser.add_argument('-b', '--bind', default='0.0.0.0',
             help='Address to bind to. Empty means all addresses')
     parser.add_argument('-p', '--port', type=int)
-    parser.add_argument('--hide', action='store_true', default=False)
+    parser.add_argument('--hide', action='store_true', default=False,
+            help='Don\'t show hidden files and directories.')
     parser.add_argument('path', nargs='?', default='.')
     args = parser.parse_args()
 
