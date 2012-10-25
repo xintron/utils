@@ -1,0 +1,152 @@
+#!/usr/bin/env python2
+# Copyright (c) 2012, Marcus Carlsson <carlsson.marcus@gmail.com>
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the Marcus Carlsson nor the
+#       names of its contributors may be used to endorse or promote products
+#       derived from this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+__version__ = '0.1.0'
+import sys
+import os
+import argparse
+import urllib
+import cgi
+
+from twisted.python import log
+from twisted.web.server import Site
+from twisted.web.static import File, DirectoryLister, getTypeAndEncoding
+from twisted.internet import reactor
+
+def human_size(num):
+    for x in ['B','K','M','G','T', 'P', 'E', 'Z', 'Y']:
+        if num < 1024.0:
+            return '{:3.1f}{:s}'.format(num, x)
+        num /= 1024.0
+
+class DirLister(DirectoryLister):
+
+    hide = False
+    template = """<!DOCTYPE html>
+<html>
+<header>
+    <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css"
+    rel="stylesheet" type="text/css" />
+    <style type="text/css">
+        table .right { text-align: right; }
+    </style>
+    <title>%(header)s</title>
+</header>
+<body>
+    <div class="container">
+        <h1>%(header)s</h1>
+        <table class="table table-hover table-striped table-condensed">
+            <thead>
+                <th>Filename</th>
+                <th>Size</th>
+                <th>Content type</th>
+            </thead>
+            <tbody>
+                %(tableContent)s
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>"""
+
+    linePattern = """<tr>
+    <td><a href="%(href)s">%(text)s</a></td>
+    <td class="right">%(size)s</td>
+    <td>%(type)s</td>
+</tr>"""
+
+    def _buildTableContent(self, elements):
+        tableContent = []
+        for element in elements:
+            tableContent.append(self.linePattern % element)
+        return tableContent
+
+    def _getFilesAndDirectories(self, directory):
+        files = []
+        dirs = []
+        for path in directory:
+            if self.hide and path.startswith('.'):
+                continue
+            url = urllib.quote(path, "/")
+            escapedPath = cgi.escape(path)
+            if os.path.isdir(os.path.join(self.path, path)):
+                url = url + '/'
+                dirs.append({'text': escapedPath + "/", 'href': url,
+                             'size': '', 'type': '[Directory]',
+                             'encoding': ''})
+            else:
+                mimetype, encoding = getTypeAndEncoding(path, self.contentTypes,
+                                                        self.contentEncodings,
+                                                        self.defaultType)
+                try:
+                    size = os.stat(os.path.join(self.path, path)).st_size
+                except OSError:
+                    continue
+                files.append({
+                    'text': escapedPath, "href": url,
+                    'type': '[%s]' % mimetype,
+                    'encoding': (encoding and '[%s]' % encoding or ''),
+                    'size': human_size(size)})
+        return dirs, files
+
+class FileHandler(File):
+
+    hide = False
+
+    def directoryListing(self):
+        dl = DirLister(self.path, self.listNames(), self.contentTypes,
+                self.contentEncodings, self.defaultType)
+        dl.hide = self.hide
+        return dl
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b', '--bind', default='0.0.0.0',
+            help='Address to bind to. Empty means all addresses')
+    parser.add_argument('-p', '--port', type=int)
+    parser.add_argument('--hide', action='store_true', default=False)
+    parser.add_argument('path', nargs='?', default='.')
+    args = parser.parse_args()
+
+    if args.port:
+        port = args.port
+    else:
+        port = 8080
+
+    fh = FileHandler(args.path)
+    fh.hide = args.hide
+    resource = fh
+    factory = Site(resource)
+    reactor.listenTCP(port, factory, interface=args.bind)
+    log.startLogging(sys.stdout)
+    log.msg('Serving HTTP on: {}:{}'.format(args.bind, port))
+    try:
+        reactor.run()
+    except KeyboardInterrupt:
+        reactor.stop()
+        sys.exit(0)
+
+if __name__ == '__main__':
+    main()
