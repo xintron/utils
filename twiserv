@@ -33,8 +33,14 @@ import logging
 
 from twisted.python import log
 from twisted.web.server import Site
-from twisted.web.static import File, DirectoryLister, getTypeAndEncoding
+from twisted.web.static import File, DirectoryLister, getTypeAndEncoding,\
+        loadMimeTypes
 from twisted.internet import reactor
+
+content_types = {
+        '.mkv': 'video/x-matroska',
+        '.nfo': 'text/plain'
+        }
 
 def human_size(num):
     for x in ['B','K','M','G','T', 'P', 'E', 'Z', 'Y']:
@@ -114,6 +120,8 @@ class DirLister(DirectoryLister):
 
 class FileHandler(File):
 
+    contentTypes = loadMimeTypes()
+    contentTypes.update(content_types)
     hide = False
 
     def directoryListing(self):
