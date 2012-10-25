@@ -58,7 +58,6 @@ def human_size(num):
 
 class DirLister(DirectoryLister):
 
-    hide = False
     template = """<!DOCTYPE html>
 <html>
 <header>
@@ -112,7 +111,7 @@ class DirLister(DirectoryLister):
         files = []
         dirs = []
         for path in directory:
-            if self.hide and path.startswith('.'):
+            if do_hide and path.startswith('.'):
                 continue
             url = urllib.quote(path, "/")
             escapedPath = cgi.escape(path)
@@ -140,13 +139,12 @@ class FileHandler(File):
 
     contentTypes = loadMimeTypes()
     contentTypes.update(content_types)
-    hide = False
 
     def directoryListing(self):
-        dl = DirLister(self.path, self.listNames(), self.contentTypes,
+        if do_hide and os.path.basename(os.path.abspath(self.path)).startswith('.'):
+            return self.childNotFound
+        return DirLister(self.path, self.listNames(), self.contentTypes,
                 self.contentEncodings, self.defaultType)
-        dl.hide = self.hide
-        return dl
 
 def main():
     parser = argparse.ArgumentParser()
@@ -163,9 +161,9 @@ def main():
     else:
         port = 8080
 
-    fh = FileHandler(args.path)
-    fh.hide = args.hide
-    resource = fh
+    global do_hide
+    do_hide = args.hide
+    resource = FileHandler(args.path)
     factory = Site(resource)
     logger.info('Serving HTTP on: {}:{}'.format(args.bind, port))
     reactor.listenTCP(port, factory, interface=args.bind)
@@ -176,6 +174,7 @@ def main():
         sys.exit(0)
 
 logger = None
+do_hide = False
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
             format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
