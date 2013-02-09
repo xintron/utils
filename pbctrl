@@ -1,0 +1,30 @@
+#!/bin/bash
+mopidy=$(ps -C mopidy u | wc -l)
+
+arg=$1
+# Mopidy running
+if [ $mopidy -gt 1 ]; then
+    case "$arg" in
+        "next")
+            mpc next
+            ;;
+        "prev"|"previous")
+            mpc prev
+            ;;
+        "toggle")
+            mpc toggle
+            ;;
+    esac
+else
+    case "$arg" in
+        "next")
+            dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next 2>/dev/null
+            ;;
+        "prev"|"previous")
+            dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous 2>/dev/null
+            ;;
+        "toggle")
+            dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause 2>/dev/null
+            ;;
+    esac
+fi
