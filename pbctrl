@@ -1,30 +1,23 @@
 #!/bin/bash
 mopidy=$(ps -C mopidy u | wc -l)
+tomahawk=$(ps -C tomahawk u | wc -l)
+spotify=$(ps -C spotify u | wc -l)
 
 arg=$1
-# Mopidy running
-if [ $mopidy -gt 1 ]; then
-    case "$arg" in
-        "next")
-            mpc next
-            ;;
-        "prev"|"previous")
-            mpc prev
-            ;;
-        "toggle")
-            mpc toggle
-            ;;
-    esac
-else
-    case "$arg" in
-        "next")
-            dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next 2>/dev/null
-            ;;
-        "prev"|"previous")
-            dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous 2>/dev/null
-            ;;
-        "toggle")
-            dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause 2>/dev/null
-            ;;
-    esac
-fi
+case "$arg" in
+    "next")
+        [ $mopidy -gt 1 ] && mpc next
+        [ $spotify -gt 1 ] && dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next 2>/dev/null
+        [ $tomahawk -gt 1 ] && dbus-send --print-reply --dest=org.mpris.MediaPlayer2.tomahawk /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next 2>/dev/null
+        ;;
+    "prev"|"previous")
+        [ $mopidy -gt 1 ] && mpc prev
+        [ $spotify -gt 1 ] && dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous 2>/dev/null
+        [ $tomahawk -gt 1 ] && dbus-send --print-reply --dest=org.mpris.MediaPlayer2.tomahawk /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous 2>/dev/null
+        ;;
+    "toggle")
+        [ $mopidy -gt 1 ] && mpc toggle
+        [ $spotify -gt 1 ] && dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause 2>/dev/null
+        [ $tomahawk -gt 1 ] && dbus-send --print-reply --dest=org.mpris.MediaPlayer2.tomahawk /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause 2>/dev/null
+        ;;
+esac
