@@ -1,0 +1,56 @@
+#!/bin/zsh
+
+filepath="/tmp/netspeed"
+if [ $# -gt 0 ]; then
+    filepath=$1
+fi
+
+# Grab the current stats for all devices
+devices=('eth0' 'wlan0')
+statistics="/sys/class/net/%dev%/statistics"
+for device in ${devices[@]}; do
+    device_path=${statistics/"%dev%"/$device}
+    [ -r "${device_path}/rx_bytes" ] && tr=$(<"${device_path}/rx_bytes") || tr=0
+    [ -r "${device_path}/tx_bytes" ] && tt=$(<"${device_path}/tx_bytes") || tt=0
+    let "rx += $tr"
+    let "tx += $tt"
+done
+
+now=$(date +%s)
+
+function save {
+    echo "$now $rx $tx" > $filepath
+    chmod 0666 $filepath
+}
+if !  [ -f "$filepath" ]; then
+    save
+    exit
+fi
+
+read old < ${filepath}
+save
+old=(${=old})
+
+let "diff = $now - $old[1]"
+if [ $diff -gt 0 ]; then
+    let "rxt = ($rx - $old[2]) / $diff"
+    let "txt = ($tx - $old[3]) / $diff"
+    # For some reason it's not possible to use let to assign to the same
+    # variable as it reads from and have it as a float. Beats me, this works at
+    # least.
+    if [ $rxt -gt 1048576 ]; then
+        let "rx_rate = $rxt / 1048576.0"
+        printf "%.2fM" $rx_rate
+    else
+        let "rx_rate = $rxt / 1024.0"
+        printf "%.1fK" $rx_rate
+    fi
+    echo -n ' | '
+    if [ $txt -gt 1048576 ]; then
+        let "tx_rate = $txt / 1048576.0"
+        printf "%.2fM" $tx_rate
+    else
+        let "tx_rate = $txt / 1024.0"
+        printf "%.1fK" $tx_rate
+    fi
+fi

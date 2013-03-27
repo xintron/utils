@@ -4,16 +4,4 @@ mkdir -p "$fakepacdb" &>/dev/null
 ln -s /var/lib/pacman/local "$fakepacdb" &>/dev/null
 fakeroot pacman -Sqy --dbpath "$fakepacdb" &>/dev/null
 
-aur=""
-if [ -n "$(command -v packer)" ]; then
-    aur="$(yes n | packer -Syu --auronly 2>/dev/null | sed -n '/Aur Targets/s/^.*(\([0-9]\+\)).*$/\1/p')"
-    [ -z "$aur" ] && aur="0"
-fi
-
-cat > "${fakepacdb}/updates" << EOF
-  Updates
-  -------
-  main: $(pacman -Qqu --dbpath "$fakepacdb" | wc -l)
-EOF
-[ -n "$aur" ] && echo "  aur:  $aur" >> "${fakepacdb}/updates"
-exit 0
+echo $(pacman -Qqu --dbpath "$fakepacdb" | wc -l) > /tmp/pacman_updates
