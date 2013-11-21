@@ -1,0 +1,114 @@
+#!/bin/zsh
+
+bname=$(basename $0)
+
+function help {
+    local help_text="usage: $bname [-h] [-a] [-u] [-b BITRATE] [-p PREMIUM] [-l]
+
+optional arguments:
+  -h    Show this help.
+  -a    Get all URLs as a list.
+  -u    Update local cache from di.fm.
+  -b    Bitrate: 256 (mp3); 128, 64, 40 (aac).
+  -p    Premium key.
+  -l    List available stations."
+    echo -e $help_text
+    exit;
+}
+
+function update {
+    log "Fetching and parsing di.fm"
+    # Parse it in the format "Station name, url". The url is not the final URL,
+    # that one is parsed depending on the options given for bitrate, premium
+    # hash etc.
+    curl -sS 'http://www.di.fm/' | awk -F'"' '/data-tunein-url.*play/ {name=$4; sub(/^.*\//, "", name); print name","$4}' > $cache
+}
+
+function log {
+    local datetime
+    datetime=$(date --rfc-3339=seconds)
+    echo -e "$datetime $1" >&2
+}
+
+# Create the URL based on given parameters
+function urlify {
+    local data=$1 url
+    channel=$(echo -n $data | sed 's|^.*/||')
+
+    rand=$(( ($RANDOM % 4) + 1 ))
+    if [ $PREMIUM ]; then
+        case $BITRATE in
+            256) URL="http://prem$rand.di.fm/${channel}_hi?$PREMIUM" ;;
+            128) URL="http://prem$rand.di.fm/${channel}?$PREMIUM" ;;
+            64) URL="http://prem$rand.di.fm/${channel}_aac?$PREMIUM" ;;
+            40) URL="http://prem$rand.di.fm/${channel}_aacp?$PREMIUM" ;;
+        esac
+    else
+        case $BITRATE in
+            64) URL="http://pub$rand.di.fm/di_${channel}_aac" ;;
+            40) URL="http://pub$rand.di.fm/di_${channel}_aacplus" ;;
+            *) log "Bitrate not available without premium account"; exit; ;;
+        esac
+    fi
+    echo $URL
+}
+
+# Find the specific station and return the URL
+function get_station {
+    local station=$1 data
+    data=$(grep -i $station $cache)
+    if [ -z "$data" ]; then
+        log "Could not find station: $station";
+        exit;
+    fi
+    urlify $data
+}
+
+cache=${XDG_CACHE_HOME:-$HOME/.cache/}/difm.cache
+
+while getopts ':uhb:lap:' opt; do
+    case "$opt" in
+        h|\?) help ;;
+        u) update=1 ;;
+        l) list=1 ;;
+        a) all_urls=1 ;;
+        p) PREMIUM=$OPTARG ;;
+        b)
+            if [[ ! $OPTARG =~ "256|128|64|40" ]]; then
+                log "Invalid bitrate\n"
+                help
+            fi
+            BITRATE=$OPTARG
+            ;;
+        :) log "-%s missing argument\n" $OPTARG; help
+    esac
+done
+# Set 64 kbps as default quality (AAC)
+BITRATE=${BITRATE:-64}
+
+# We got more arguments, parse the last one as the station to fetch
+if [ $# -gt $(( $OPTIND - 1 )) ]; then
+    station=${@:$OPTIND}
+    get_station $station
+    exit
+fi
+
+# Force update or update if no cache can be found
+([ ! -f "$cache" ] || [ "$update" ]) && update
+
+if [ $list ]; then
+    # Writing to the terminal, make it pretty
+    if [ -t 1 ]; then
+        awk -F',' '{print $1}' < $cache | column
+    else
+        awk -F',' '{print $1}' < $cache
+    fi
+    exit
+fi
+
+if [ $all_urls ]; then
+    for row in $(< $cache); do
+        urlify $row
+    done
+    exit
+fi
