@@ -61,8 +61,9 @@ class DirLister(DirectoryLister):
     template = """<!DOCTYPE html>
 <html>
 <header>
-    <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css"
-    rel="stylesheet" type="text/css" />
+    <link
+    href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+    rel="stylesheet">
     <style type="text/css">
         table .right { text-align: right; }
     </style>
