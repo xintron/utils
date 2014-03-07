@@ -16,6 +16,8 @@ optional arguments:
     exit;
 }
 
+[ $# = 0 ] && help
+
 function update {
     log "Fetching and parsing di.fm"
     # Parse it in the format "Station name, url". The url is not the final URL,
@@ -56,12 +58,14 @@ function urlify {
 # Find the specific station and return the URL
 function get_station {
     local station=$1 data
-    data=$(grep -i $station $cache)
+    data=($(grep -i $station $cache))
     if [ -z "$data" ]; then
         log "Could not find station: $station";
         exit;
     fi
-    urlify $data
+    for row in $data; do
+        urlify $row
+    done
 }
 
 cache=${XDG_CACHE_HOME:-$HOME/.cache/}/difm.cache
