@@ -19,11 +19,26 @@ optional arguments:
 [ $# = 0 ] && help
 
 function update {
-    log "Fetching and parsing di.fm"
-    # Parse it in the format "Station name, url". The url is not the final URL,
-    # that one is parsed depending on the options given for bitrate, premium
-    # hash etc.
-    curl -sS 'http://www.di.fm/' | awk -F'"' '/data-tunein-url.*play/ {name=$4; sub(/^.*\//, "", name); print name","$4}' > $cache
+    if [ -z "$(command -v jq)" ]; then
+        echo "jq is required to parse the available stations." >&2
+        exit 1
+    fi
+    local json data
+    log "Fetching and parsing di.fm."
+    # Fetch their new JSON dataset and parse that one using jq
+    json=$(curl -sS 'http://www.di.fm/webplayer3/config')
+    if [ -z "$json" ]; then
+        log "Could not fetch data from di.fm."
+        exit 1
+    fi
+    data=$(echo $json | jq -r '.API.Config.channels[] | "\(.name),\(.key)"')
+    if [ -n "$data" ]; then
+        log "Caching data."
+        echo $data > $cache
+    else
+        log "Could not parse data correctly. HTML might have changed."
+        exit 1
+    fi
 }
 
 function log {
@@ -35,7 +50,7 @@ function log {
 # Create the URL based on given parameters
 function urlify {
     local data=$1 url
-    channel=$(echo -n $data | sed 's|^.*/||')
+    channel=$(echo -n $data | cut -d',' -f 2)
 
     rand=$(( ($RANDOM % 4) + 1 ))
     if [ $PREMIUM ]; then
@@ -49,7 +64,7 @@ function urlify {
         case $BITRATE in
             64) URL="http://pub$rand.di.fm/di_${channel}_aac" ;;
             40) URL="http://pub$rand.di.fm/di_${channel}_aacplus" ;;
-            *) log "Bitrate not available without premium account"; exit; ;;
+            *) log "Bitrate not available without premium account"; exit 1; ;;
         esac
     fi
     echo $URL
@@ -58,6 +73,7 @@ function urlify {
 # Find the specific station and return the URL
 function get_station {
     local station=$1 data
+    IFS=$'\n'
     data=($(grep -i $station $cache))
     if [ -z "$data" ]; then
         log "Could not find station: $station";
@@ -68,7 +84,7 @@ function get_station {
     done
 }
 
-cache=${XDG_CACHE_HOME:-$HOME/.cache/}/difm.cache
+cache=${XDG_CACHE_HOME:-$HOME/.cache/}/difm
 
 while getopts ':uhb:lap:' opt; do
     case "$opt" in
@@ -93,6 +109,7 @@ BITRATE=${BITRATE:-64}
 # We got more arguments, parse the last one as the station to fetch
 if [ $# -gt $(( $OPTIND - 1 )) ]; then
     station=${@:$OPTIND}
+    [ ! -f "$cache" ] && update
     get_station $station
     exit
 fi
@@ -111,6 +128,7 @@ if [ $list ]; then
 fi
 
 if [ $all_urls ]; then
+    IFS=$'\n'
     for row in $(< $cache); do
         urlify $row
     done
